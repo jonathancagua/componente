@@ -34,3 +34,7 @@ Debug/src/systick.su
 Debug/src/tecla.su
 Debug/src/uart.su
 periph_blinky LinkServer Debug.launch
+.settings/org.eclipse.cdt.core.prefs
+cese_protocolo LinkServer Debug.launch
+Debug/cese_protocolo_LinkServer_Debug.jtag
+Debug/.gitignore
