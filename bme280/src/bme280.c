@@ -42,6 +42,25 @@ static int8_t bme280_reset_sw(struct bme280_dev *dev)
     }
     return(resp);
 }
+static void parse_temp_press_calib_data(struct bme280_dev *dev, const uint8_t *reg_data)
+{
+	memset(&dev->calib_data.dig_T1,0x00,sizeof(dev->calib_data));
+    memcpy(&dev->calib_data.dig_T1,reg_data,(BME280_LEN_CALIB_TEMP_HUM - 2));
+    dev->calib_data.dig_H1 = reg_data[BME280_LEN_CALIB_TEMP_HUM-1];
+}
+
+static int8_t calibration_data_get(struct bme280_dev *dev){
+    int8_t resp = ERROR_PTR_NULL;
+    uint8_t reg_addr = BME280_ADDR_CALIB_TEMP;
+    if(dev == NULL) return(resp);
+    uint8_t calib_data[BME280_LEN_CALIB_TEMP_HUM];
+    resp = bme280_reg_get(dev, reg_addr, calib_data, BME280_LEN_CALIB_TEMP_HUM);
+    if(resp == ERROR_NOT){
+    	parse_temp_press_calib_data(dev, calib_data );
+    	resp = 0 ;
+    }
+
+}
 int8_t bme280_init(struct bme280_dev *dev)
 {
     uint8_t chip_id = 0;
@@ -55,7 +74,7 @@ int8_t bme280_init(struct bme280_dev *dev)
             dev->chip_id = chip_id;
             //ahora hacemos un reset de sw
             if(bme280_reset_sw(dev) == ERROR_NOT){
-                //Calibrar
+            	calibration_data_get(dev);
             }
         }
     }

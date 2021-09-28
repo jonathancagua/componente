@@ -27,6 +27,11 @@
 #define BME280_RESET_PW_ON                      0xB6U
 #define BME280_STATUS_IM_UPDATE                 0x01U
 
+#define BME280_ADDR_CALIB_TEMP                  0X88U
+#define BME280_ADDR_CALIB_HUME                  0XE1U
+
+#define BME280_LEN_CALIB_TEMP_HUM               0X1AU
+
 #define BME280_INTF_RESP_SUCCESS                (0)
 
 #define ERROR_NOT                               (0)
@@ -38,7 +43,31 @@ enum bme280_inter
     BME280_INTF_I2C = 1,
     BME280_INTF_SPI
 };
+//table 16
+typedef struct __attribute__((__packed__)) 
+{
+    uint16_t dig_T1;
+    int16_t dig_T2;
+    int16_t dig_T3;
 
+    uint16_t dig_P1;
+    int16_t dig_P2;
+    int16_t dig_P3;
+    int16_t dig_P4;
+    int16_t dig_P5;
+    int16_t dig_P6;
+    int16_t dig_P7;
+    int16_t dig_P8;
+    int16_t dig_P9;
+
+    uint8_t dig_H1;
+    int16_t dig_H2;
+    uint8_t dig_H3;
+    int16_t dig_H4;
+    int16_t dig_H5;
+    int8_t dig_H6;
+    int32_t t_coef;
+}dev_calib_data;
 typedef int8_t (*bme280_func_ptr_t)(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt);
 typedef void (*bme280_func_delay_ptr_t)(uint32_t ms, void *intf_ptr);
 struct bme280_dev
@@ -50,5 +79,6 @@ struct bme280_dev
     bme280_func_ptr_t fread;
     bme280_func_delay_ptr_t delay_ms;
     int8_t inter_resp;
+    dev_calib_data calib_data;
 };
 #endif /* BME280_INC_BME280_DEF_H_ */

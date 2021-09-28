@@ -1,9 +1,10 @@
 
-/*=============================================================================
- * Author: Leandro Arrieta <leandroarrieta@gmail.com>
- * Date: 2021/07/07
- *===========================================================================*/
-
+/*
+ * main.h
+ *
+ *  Created on: Sep 26, 2021
+ *      Author: jonathancagua
+ */
 /*=====[Avoid multiple inclusion - begin]====================================*/
 
 #ifndef __MAIN_H__
