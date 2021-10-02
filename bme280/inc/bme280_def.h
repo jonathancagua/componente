@@ -8,6 +8,7 @@
 #ifndef BME280_INC_BME280_DEF_H_
 #define BME280_INC_BME280_DEF_H_
 #include <stdint.h>
+#include <stdbool.h>
 //Direcciones I2C
 #define BME280_I2C_ADDR_1                       0x76U
 #define BME280_I2C_ADDR_2                       0x77U
@@ -31,6 +32,27 @@
 #define BME280_ADDR_CALIB_HUME                  0XE1U
 
 #define BME280_LEN_CALIB_TEMP_HUM               0X1AU
+#define BME280_LEN_CALIB_HUM                    0X07U
+
+#define BME280_NOT_O_SAMPLE                     0x00U
+#define BME280_OSAMPLE_1X                       0x01U
+#define BME280_OSAMPLE_2X                       0x02U
+#define BME280_OSAMPLE_4X                       0x03U
+#define BME280_OSAMPLE_8X                       0x04U
+#define BME280_OSAMPLE_16X                      0x05U
+
+#define BME280_FIL_COE_OFF                      0x00U
+#define BME280_FIL_COE_2                        0x01U
+#define BME280_FIL_COE_4                        0x02U
+#define BME280_FIL_COE_8                        0x03U
+#define BME280_FIL_COE_16                       0x04U
+
+#define BME280_MASK_C_MEAS_T                    0XE0U
+#define BME280_MASK_C_MEAS_P                    0X1CU
+
+#define BME280_POWER_SLEEP                      0X00U
+#define BME280_POWER_FORCED                     0X01U
+#define BME280_POWER_NORMAL                     0X03U
 
 #define BME280_INTF_RESP_SUCCESS                (0)
 
@@ -38,6 +60,8 @@
 #define ERROR_PTR_NULL                          (-1)
 #define ERROR_LOGIN_FAIL                        (-2)
 #define ERROR_NVM_NOT_COPY                      (-3)
+#define ERROR_DEV_NOT_IDENT                     (-4)
+
 enum bme280_inter
 {
     BME280_INTF_I2C = 1,
@@ -68,6 +92,23 @@ typedef struct __attribute__((__packed__))
     int8_t dig_H6;
     int32_t t_coef;
 }dev_calib_data;
+struct bme280_enable
+{
+    //oversampling
+    bool temp;
+    bool hum;
+    bool pres;
+    bool filter;
+};
+typedef struct 
+{
+    //oversampling
+    uint8_t osrs_p;
+    uint8_t osrs_t;
+    uint8_t osrs_h;
+    //filter
+    uint8_t filter;
+}bme280_config;
 typedef int8_t (*bme280_func_ptr_t)(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt);
 typedef void (*bme280_func_delay_ptr_t)(uint32_t ms, void *intf_ptr);
 struct bme280_dev
@@ -80,5 +121,6 @@ struct bme280_dev
     bme280_func_delay_ptr_t delay_ms;
     int8_t inter_resp;
     dev_calib_data calib_data;
+    bme280_config config;
 };
 #endif /* BME280_INC_BME280_DEF_H_ */

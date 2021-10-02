@@ -17,7 +17,24 @@ void atenderError();
 static int8_t bme280RegistersRead(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt);
 static int8_t bme280RegisterWrite(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt);
 void user_delay_ms(uint32_t ms, void *intf_ptr);
+int8_t script_mode_force(struct bme280_dev *device){
+	int8_t resp = ERROR_NOT;
+	struct bme280_enable sensor_select;
+
+	sensor_select.hum = TRUE;
+	sensor_select.pres = TRUE;
+	sensor_select.temp = TRUE;
+	sensor_select.filter = TRUE;
+	device->config.osrs_t = BME280_OSAMPLE_2X;
+	device->config.osrs_h = BME280_OSAMPLE_1X;
+	device->config.osrs_p = BME280_OSAMPLE_16X;
+	device->config.filter = BME280_FIL_COE_16;
+	resp = bme280_mode_set(device,&sensor_select);
+	return(resp);
+	
+}
 int main(void){
+	int8_t resp = ERROR_NOT;
 	struct identifier id;
 	struct bme280_dev device;
 	Inicio();
@@ -30,9 +47,11 @@ int main(void){
 	device.delay_ms = user_delay_ms;
 	device.ptrInt = &id;
 	delay( 1000 );
-	bme280_init(&device);
-
-
+	resp = bme280_init(&device);
+	if(resp != ERROR_NOT){
+		printf("Error para inicializar \n\r");
+	}
+	script_mode_force(&device);
 	while (1)
 	{
 		__WFI();
