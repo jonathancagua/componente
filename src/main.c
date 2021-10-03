@@ -29,7 +29,13 @@ int8_t script_mode_force(struct bme280_dev *device){
 	device->config.osrs_h = BME280_OSAMPLE_1X;
 	device->config.osrs_p = BME280_OSAMPLE_16X;
 	device->config.filter = BME280_FIL_COE_16;
-	resp = bme280_mode_set(device,&sensor_select);
+	resp = bme280_config_set(device, &sensor_select);
+	if (resp != ERROR_NOT)
+    {
+		printf(stderr, "Falla en algun paso de la configuracion \n\r");
+
+        return resp;
+    }
 	return(resp);
 	
 }

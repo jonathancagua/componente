@@ -50,6 +50,9 @@
 #define BME280_MASK_C_MEAS_T                    0XE0U
 #define BME280_MASK_C_MEAS_P                    0X1CU
 
+#define BME280_MASK_CONF_FIL                    0X1CU
+#define BME280_MASK_CONF_PWR                    0X03U
+
 #define BME280_POWER_SLEEP                      0X00U
 #define BME280_POWER_FORCED                     0X01U
 #define BME280_POWER_NORMAL                     0X03U
