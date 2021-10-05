@@ -20,7 +20,7 @@ void user_delay_ms(uint32_t ms, void *intf_ptr);
 int8_t script_mode_force(struct bme280_dev *device){
 	int8_t resp = ERROR_NOT;
 	struct bme280_enable sensor_select;
-
+	struct bme280_data dev_data;
 	sensor_select.hum = TRUE;
 	sensor_select.pres = TRUE;
 	sensor_select.temp = TRUE;
@@ -36,6 +36,18 @@ int8_t script_mode_force(struct bme280_dev *device){
 
         return resp;
     }
+	while (1)
+    {
+		resp = bme280_mode_set(device, BME280_POWER_FORCED);
+		if (resp != ERROR_NOT)
+		{
+			printf(stderr, "Falla al set mode \n\r");
+
+			return resp;
+		}
+		device->delay_ms(40, device->ptrInt);
+		bme280_data_get(device, &dev_data);
+	}
 	return(resp);
 	
 }
