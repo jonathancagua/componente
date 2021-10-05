@@ -66,7 +66,7 @@ static int8_t bme280_calibration_data_get(struct bme280_dev *dev){
     int8_t resp = ERROR_PTR_NULL;
     uint8_t reg_addr = BME280_ADDR_CALIB_TEMP;
     if(dev == NULL) return(resp);
-    uint8_t calib_data[BME280_LEN_CALIB_TEMP_HUM];
+    uint8_t calib_data[BME280_LEN_CALIB_TEMP_HUM]={0};
     resp = bme280_reg_get(dev, reg_addr, calib_data, BME280_LEN_CALIB_TEMP_HUM);
     if(resp == ERROR_NOT){
     	bme280_temp_hum_proce(dev, calib_data );
@@ -103,7 +103,7 @@ int8_t bme280_init(struct bme280_dev *dev)
     return(resp);
 
 }
-static bme280_mode_get(struct bme280_dev *dev, uint8_t *power_mode){
+static int8_t bme280_mode_get(struct bme280_dev *dev, uint8_t *power_mode){
     int8_t resp = ERROR_PTR_NULL;
     if(dev == NULL || power_mode == NULL) return(resp);
     resp = bme280_reg_get(dev, BME280_ADDR_CTRL_MEAS, power_mode, 1);
@@ -214,4 +214,25 @@ int8_t bme280_mode_set(struct bme280_dev *dev, uint8_t sensor_mode)
 		bme280_power_set(dev,sensor_mode);
 	}
     return resp;
+}
+
+int8_t bme280_data_get(struct bme280_dev *dev, struct bme280_data *dev_data)
+{
+    double data1;
+    double data2;
+    double temperature;
+	int8_t resp = ERROR_PTR_NULL;
+	uint8_t data_sensor[8]={0};
+	if(dev == NULL || dev_data == NULL) return(resp);
+	resp = bme280_reg_get(dev, BME280_ADDR_DATA, data_sensor, 8);
+
+	dev_data->pressure = (data_sensor[0]<<12)|(data_sensor[1]<<4)|(data_sensor[2]>>4);
+	dev_data->temperature = (data_sensor[3]<<12)|(data_sensor[4]<<4)|(data_sensor[5]>>4);
+	dev_data->humidity = ((data_sensor[6]<<8)|(data_sensor[7]));
+
+	data1 = ((double)dev_data->temperature) / 16384.0 - ((double)dev->calib_data.dig_T1) / 1024.0;
+	data1 = data1 * ((double)dev->calib_data.dig_T2);
+	data2 = (((double)dev_data->temperature) / 131072.0 - ((double)dev->calib_data.dig_T1) / 8192.0);
+	temperature = (data1 + data2) / 5120.0;//test temperature read
+	return resp;
 }
