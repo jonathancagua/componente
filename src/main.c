@@ -85,7 +85,14 @@ static int8_t bme280RegisterWrite(uint8_t reg_addr, uint8_t *reg_data, uint32_t 
 {
 	struct identifier id;
     id = *((struct identifier *)ptrInt);
-	i2cWrite( I2C0,id.devi_addr,reg_data,len,TRUE);
+    uint8_t *buff = malloc((1 + len) * sizeof(uint8_t));
+    buff[0] = reg_addr;
+    for (uint8_t i = 0; i < len; i++)
+    {
+        buff[i + 1] = reg_data[i];
+    }
+	i2cWrite( I2C0,id.devi_addr,buff,len+1,TRUE);
+	free(buff);
 	return 0;
 }
 
