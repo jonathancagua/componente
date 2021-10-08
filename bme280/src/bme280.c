@@ -215,24 +215,69 @@ int8_t bme280_mode_set(struct bme280_dev *dev, uint8_t sensor_mode)
 	}
     return resp;
 }
-
-int8_t bme280_data_get(struct bme280_dev *dev, struct bme280_data *dev_data)
+double bm280_pressure_convert(struct bme280_dev *dev, struct bme280_data_uncom *dev_data)
 {
-    double data1;
-    double data2;
+    double data1,data2,data3;
+    double pressure=0;
+    data1 = ((double)dev->calib_data.t_coef / 2.0) - 64000.0;
+    data2 = data1 * data1 * ((double)dev->calib_data.dig_P6) / 32768.0;
+    data2 = data2 + data1 * ((double)dev->calib_data.dig_P5) * 2.0;
+    data2 = (data2 / 4.0) + (((double)dev->calib_data.dig_P4) * 65536.0);
+    data3 = ((double)dev->calib_data.dig_P3) * data1 * data1 / 524288.0;
+    data1 = (data3 + ((double)dev->calib_data.dig_P2) * data1) / 524288.0;
+    data1 = (1.0 + data1 / 32768.0) * ((double)dev->calib_data.dig_P1);
+
+    if (data1 > (0.0))
+    {
+        pressure = 1048576.0 - (double) dev_data->pressure;
+        pressure = (pressure - (data2 / 4096.0)) * 6250.0 / data1;
+        data1 = ((double)dev->calib_data.dig_P9) * pressure * pressure / 2147483648.0;
+        data2 = pressure * ((double)dev->calib_data.dig_P8) / 32768.0;
+        pressure = pressure + (data1 + data2 + ((double)dev->calib_data.dig_P7)) / 16.0;
+    }
+    return(pressure);
+}
+double bm280_humidity_convert(struct bme280_dev *dev, struct bme280_data_uncom *dev_data)
+{
+    double data1,data2,data3,data4,data5,data6;
+    double humidity;
+    data1 = ((double)dev->calib_data.t_coef) - 76800.0;
+    data2 = (((double)dev->calib_data.dig_H4) * 64.0 + (((double)dev->calib_data.dig_H5) / 16384.0) * data1);
+    data3 = dev_data->humidity - data2;
+    data4 = ((double)dev->calib_data.dig_H2) / 65536.0;
+    data5 = (1.0 + (((double)dev->calib_data.dig_H3) / 67108864.0) * data1);
+    data6 = 1.0 + (((double)dev->calib_data.dig_H6) / 67108864.0) * data1 * data5;
+    data6 = data3 * data4 * (data5 * data6);
+    humidity = data6 * (1.0 - ((double)dev->calib_data.dig_H1) * data6 / 524288.0);
+    return(humidity);
+}
+double bm280_temperature_convert(struct bme280_dev *dev, struct bme280_data_uncom *dev_data)
+{
+    double data1,data2;
     double temperature;
-	int8_t resp = ERROR_PTR_NULL;
-	uint8_t data_sensor[8]={0};
-	if(dev == NULL || dev_data == NULL) return(resp);
-	resp = bme280_reg_get(dev, BME280_ADDR_DATA, data_sensor, 8);
-
-	dev_data->pressure = (data_sensor[0]<<12)|(data_sensor[1]<<4)|(data_sensor[2]>>4);
-	dev_data->temperature = (data_sensor[3]<<12)|(data_sensor[4]<<4)|(data_sensor[5]>>4);
-	dev_data->humidity = ((data_sensor[6]<<8)|(data_sensor[7]));
-
 	data1 = ((double)dev_data->temperature) / 16384.0 - ((double)dev->calib_data.dig_T1) / 1024.0;
 	data1 = data1 * ((double)dev->calib_data.dig_T2);
 	data2 = (((double)dev_data->temperature) / 131072.0 - ((double)dev->calib_data.dig_T1) / 8192.0);
 	temperature = (data1 + data2) / 5120.0;//test temperature read
+    return(temperature);
+}
+
+int8_t bme280_data_get(struct bme280_dev *dev, struct bme280_data *dev_data)
+{
+	int8_t resp = ERROR_PTR_NULL;
+	uint8_t data_sensor[8]={0};
+    struct bme280_data_uncom data_uncom = {0};
+	if(dev == NULL || dev_data == NULL) return(resp);
+	resp = bme280_reg_get(dev, BME280_ADDR_DATA, data_sensor, 8);
+
+
+	data_uncom.pressure = (data_sensor[0]<<12)|(data_sensor[1]<<4)|(data_sensor[2]>>4);
+	data_uncom.temperature = (data_sensor[3]<<12)|(data_sensor[4]<<4)|(data_sensor[5]>>4);
+	data_uncom.humidity = ((data_sensor[6]<<8)|(data_sensor[7]));
+    
+    dev_data->temperature = bm280_temperature_convert(dev, &data_uncom);
+    dev_data->humidity = bm280_humidity_convert(dev, &data_uncom);
+    dev_data->pressure = bm280_pressure_convert(dev, &data_uncom);
 	return resp;
 }
+

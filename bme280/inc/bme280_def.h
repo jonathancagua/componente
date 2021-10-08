@@ -126,10 +126,16 @@ struct bme280_dev
     dev_calib_data calib_data;
     bme280_config config;
 };
-struct bme280_data
+struct bme280_data_uncom
 {
     uint32_t pressure;
     int32_t temperature;
     uint32_t humidity;
+};
+struct bme280_data
+{
+    double pressure;
+    double temperature;
+    double humidity;
 };
 #endif /* BME280_INC_BME280_DEF_H_ */
