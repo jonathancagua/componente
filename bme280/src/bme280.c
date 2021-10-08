@@ -1,6 +1,24 @@
+/**
+ * @file bme280.c
+ * @author jonathan.cagua@gmail.com
+ * @brief este archivo arma el frame a enviar al sensor, puede ser de escritura o de lectura
+ * @version 0.1
+ * @date 2021-10-08
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "bme280.h"
 #include <stddef.h>
-
+/**
+ * @brief esta funcion lee la informacion de un registro
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param reg_addr direccion del registro
+ * @param reg_data puntero al data donde voy almacenar el valor
+ * @param len la longitud del data a leer
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_reg_get(struct bme280_dev *dev, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
 {
     int8_t resp = ERROR_PTR_NULL;
@@ -13,6 +31,15 @@ static int8_t bme280_reg_get(struct bme280_dev *dev, uint8_t reg_addr, uint8_t *
 
     return resp;
 }
+/**
+ * @brief esta funcion setea la informacion de un registro
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param reg_addr direccion del registro
+ * @param reg_data puntero al data del valor a setea en el registro
+ * @param len la longitud del data a setear
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_reg_set(struct bme280_dev *dev , uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
 {
     int8_t resp = ERROR_PTR_NULL;
@@ -22,6 +49,12 @@ static int8_t bme280_reg_set(struct bme280_dev *dev , uint8_t reg_addr, uint8_t 
     dev->inter_resp = dev->fwrite(reg_addr, reg_data, len, dev->ptrInt);
     if (dev->inter_resp != BME280_INTF_RESP_SUCCESS) resp = ERROR_LOGIN_FAIL;
 }
+/**
+ * @brief Reset por software del device
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_reset_sw(struct bme280_dev *dev)
 {
     uint8_t status_reg = 0;
@@ -42,12 +75,24 @@ static int8_t bme280_reset_sw(struct bme280_dev *dev)
     }
     return(resp);
 }
+/**
+ * @brief Da formato al array que se obtuvo del sensor
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param reg_data puntero al arreglo de data del device que contiene los registros
+ */
 static void bme280_temp_hum_proce(struct bme280_dev *dev, const uint8_t *reg_data)
 {
 	memset(&dev->calib_data.dig_T1,0x00,sizeof(dev->calib_data));
     memcpy(&dev->calib_data.dig_T1,reg_data,(BME280_LEN_CALIB_TEMP_HUM - 2));
     dev->calib_data.dig_H1 = reg_data[BME280_LEN_CALIB_TEMP_HUM-1];
 }
+/**
+ * @brief Da formato al array que se obtuvo del sensor
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param reg_data puntero al arreglo de data del device que contiene los registros
+ */
 static void bme280_hum_proce(struct bme280_dev *dev, const uint8_t *reg_data)
 {
     int16_t dig_lsb;
@@ -61,7 +106,12 @@ static void bme280_hum_proce(struct bme280_dev *dev, const uint8_t *reg_data)
     dev->calib_data.dig_H5 = dig_msb | dig_lsb;
     dev->calib_data.dig_H6 = (int8_t)reg_data[6];
 }
-
+/**
+ * @brief obtiene los registro para compensar y calibracion
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_calibration_data_get(struct bme280_dev *dev){
     int8_t resp = ERROR_PTR_NULL;
     uint8_t reg_addr = BME280_ADDR_CALIB_TEMP;
@@ -78,6 +128,12 @@ static int8_t bme280_calibration_data_get(struct bme280_dev *dev){
     }
     return(resp);
 }
+/**
+ * @brief inicializa la lectura del sensor para ver si esta presente
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 int8_t bme280_init(struct bme280_dev *dev)
 {
     uint8_t chip_id = 0;
@@ -103,6 +159,13 @@ int8_t bme280_init(struct bme280_dev *dev)
     return(resp);
 
 }
+/**
+ * @brief obtiene el modo que se encuentra el bme280
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param power_mode el valor del registro de mode en el bit 0 y 1
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_mode_get(struct bme280_dev *dev, uint8_t *power_mode){
     int8_t resp = ERROR_PTR_NULL;
     if(dev == NULL || power_mode == NULL) return(resp);
@@ -110,6 +173,12 @@ static int8_t bme280_mode_get(struct bme280_dev *dev, uint8_t *power_mode){
     *power_mode &= 0x03;//mode[1:0]    
     return(resp);
 }
+/**
+ * @brief sobreescribe el registro de control meas
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_meas_overwrite(struct bme280_dev *dev){
     uint8_t ctrl_meas_value;
     int8_t resp = ERROR_PTR_NULL;
@@ -120,7 +189,12 @@ static int8_t bme280_meas_overwrite(struct bme280_dev *dev){
     }
     return(resp);
 }
-
+/**
+ * @brief se escribe el registro de osrs de humedad
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_osrs_h_write(struct bme280_dev *dev){
     int8_t resp = ERROR_PTR_NULL;
     if(dev == NULL) return(resp);
@@ -131,6 +205,13 @@ static int8_t bme280_osrs_h_write(struct bme280_dev *dev){
     }
     return(resp);
 }
+/**
+ * @brief se escribe el registro de osrs de temperatura y de presion
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param config es la configuracion que tiene el device de que dispisitivo esta habilitado
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_osrs_tp_write(struct bme280_dev *dev, struct bme280_enable *config){
     int8_t resp = ERROR_PTR_NULL;
     uint8_t regis;
@@ -150,6 +231,13 @@ static int8_t bme280_osrs_tp_write(struct bme280_dev *dev, struct bme280_enable 
     }
     return(resp);
 }
+/**
+ * @brief se escribe la configuracion del filtro del modulo
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param config es la configuracion que tiene el device si el filtro esta habilitado
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_config_filter_write(struct bme280_dev *dev, struct bme280_enable *config){
     int8_t resp = ERROR_PTR_NULL;
     uint8_t regis;
@@ -166,6 +254,13 @@ static int8_t bme280_config_filter_write(struct bme280_dev *dev, struct bme280_e
     }
     return(resp);
 }
+/**
+ * @brief Setea los osrs y opciones de filtro del device 
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param config es la configuracion que tiene el device 
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 int8_t bme280_config_set(struct bme280_dev *dev, struct bme280_enable *config)
 {
     int8_t resp = ERROR_PTR_NULL;
@@ -188,6 +283,13 @@ int8_t bme280_config_set(struct bme280_dev *dev, struct bme280_enable *config)
     }
     return(resp);
 }
+/**
+ * @brief Setea el power del device
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param power_modo el power a setear el dispositivo
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 static int8_t bme280_power_set(struct bme280_dev *dev, uint8_t power_modo){
     int8_t resp = ERROR_PTR_NULL;
     uint8_t reg_value;
@@ -200,6 +302,13 @@ static int8_t bme280_power_set(struct bme280_dev *dev, uint8_t power_modo){
     }
     return(resp);
 }
+/**
+ * @brief obtiene el modo actual y setea el nuevo mode
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param sensor_mode el modo a setear el device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 int8_t bme280_mode_set(struct bme280_dev *dev, uint8_t sensor_mode)
 {
 	int8_t resp = ERROR_PTR_NULL;
@@ -215,6 +324,13 @@ int8_t bme280_mode_set(struct bme280_dev *dev, uint8_t sensor_mode)
 	}
     return resp;
 }
+/**
+ * @brief funcion para compensar el valor de presion con valor double
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param dev_data el dato sin compesacion
+ * @return double el valor de presion compensado
+ */
 double bm280_pressure_convert(struct bme280_dev *dev, struct bme280_data_uncom *dev_data)
 {
     double data1,data2,data3;
@@ -237,6 +353,13 @@ double bm280_pressure_convert(struct bme280_dev *dev, struct bme280_data_uncom *
     }
     return(pressure);
 }
+/**
+ * @brief funcion para compensar el valor de humedad con valor double
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param dev_data el dato sin compesacion
+ * @return double el valor de humedad compensado
+ */
 double bm280_humidity_convert(struct bme280_dev *dev, struct bme280_data_uncom *dev_data)
 {
     double data1,data2,data3,data4,data5,data6;
@@ -251,6 +374,13 @@ double bm280_humidity_convert(struct bme280_dev *dev, struct bme280_data_uncom *
     humidity = data6 * (1.0 - ((double)dev->calib_data.dig_H1) * data6 / 524288.0);
     return(humidity);
 }
+/**
+ * @brief funcion para compensar el valor de temperatura con valor double
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param dev_data el dato sin compesacion
+ * @return double el valor de temperatura compensado
+ */
 double bm280_temperature_convert(struct bme280_dev *dev, struct bme280_data_uncom *dev_data)
 {
     double data1,data2;
@@ -261,7 +391,13 @@ double bm280_temperature_convert(struct bme280_dev *dev, struct bme280_data_unco
 	temperature = (data1 + data2) / 5120.0;//test temperature read
     return(temperature);
 }
-
+/**
+ * @brief obtiene los valores de temperatura huemdad y presion 
+ * 
+ * @param dev instancia a la estrutura principal del device
+ * @param dev_data puntero a la estructura que va tener lainformaciond el device
+ * @return int8_t algun error de la lista en bme280_def.h ERROR_XXX
+ */
 int8_t bme280_data_get(struct bme280_dev *dev, struct bme280_data *dev_data)
 {
 	int8_t resp = ERROR_PTR_NULL;

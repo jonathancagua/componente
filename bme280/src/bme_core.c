@@ -1,11 +1,18 @@
-/*
- * bme_core.c
- *
- *  Created on: Oct 8, 2021
- *      Author: jonathancagua
+/**
+ * @file bme_core.c
+ * @author jonathan.cagua@gmail.com
+ * @brief este .c se encarga de unir bme280_port.* con bme280.* y hacer un solicitud mas sencilla del data 
+ * del sensor.
+ * @version 0.1
+ * @date 2021-10-08
+ * 
+ * @copyright Copyright (c) 2021
+ * 
  */
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "bme280.h"
 #include "bme280_port.h"
 #include "bme_core.h"
@@ -37,7 +44,6 @@ int8_t bme_sensor_init(){
 		resp = bme280_config_set(&device, &sensor_select);
 		if (resp != ERROR_NOT)
 	    {
-			printf(stderr, "Falla en algun paso de la configuracion \n\r");
 	        return resp;
 	    }
 	}
@@ -51,8 +57,6 @@ int8_t bme_sensor_get(enum bme_mode mode ,struct bme_data *dev_info){
 		resp = bme280_mode_set(&device, BME280_POWER_FORCED);
 		if (resp != ERROR_NOT)
 		{
-			printf(stderr, "Falla al set mode \n\r");
-
 			return resp;
 		}
 		device.delay_ms(40, device.ptrInt);
