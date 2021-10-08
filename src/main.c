@@ -1,128 +1,48 @@
 
 #include "sapi.h"
 #include "main.h"
-#include "../bme280/inc/bme280.h"
-/*****************************************************************************
- * Private types/enumerations/variables
- ****************************************************************************/
+#include "../bme280/inc/bme_core.h"
 
 #define TICKRATE_HZ (1000)	/* 1000 ticks per second */
-struct identifier
-{
-    uint8_t devi_addr;
-    int8_t fd;
-};
-static void Inicio (void);
+
+static void HW_init(void);
 void atenderError();
-static int8_t bme280RegistersRead(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt);
-static int8_t bme280RegisterWrite(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt);
-void user_delay_ms(uint32_t ms, void *intf_ptr);
-int8_t script_mode_force(struct bme280_dev *device){
-	int8_t resp = ERROR_NOT;
-	struct bme280_enable sensor_select;
-	struct bme280_data dev_data;
-	sensor_select.hum = TRUE;
-	sensor_select.pres = TRUE;
-	sensor_select.temp = TRUE;
-	sensor_select.filter = TRUE;
-	device->config.osrs_t = BME280_OSAMPLE_2X;
-	device->config.osrs_h = BME280_OSAMPLE_1X;
-	device->config.osrs_p = BME280_OSAMPLE_16X;
-	device->config.filter = BME280_FIL_COE_16;
-	resp = bme280_config_set(device, &sensor_select);
-	if (resp != ERROR_NOT)
-    {
-		printf(stderr, "Falla en algun paso de la configuracion \n\r");
 
-        return resp;
-    }
-	while (1)
-    {
-		resp = bme280_mode_set(device, BME280_POWER_FORCED);
-		if (resp != ERROR_NOT)
-		{
-			printf(stderr, "Falla al set mode \n\r");
-
-			return resp;
-		}
-		device->delay_ms(40, device->ptrInt);
-		bme280_data_get(device, &dev_data);
-	}
-	return(resp);
-	
-}
 int main(void){
-	int8_t resp = ERROR_NOT;
-	struct identifier id;
-	struct bme280_dev device;
-	Inicio();
-	id.devi_addr = BME280_I2C_ADDR_1;
-	id.fd = i2cInit( I2C0, 100000 );
+	int8_t resp;
+	struct bme_data sensor_data;
+	HW_init();
 
-	device.inter = BME280_INTF_I2C;
-	device.fread = bme280RegistersRead;
-	device.fwrite = bme280RegisterWrite;
-	device.delay_ms = user_delay_ms;
-	device.ptrInt = &id;
 	delay( 1000 );
-	resp = bme280_init(&device);
-	if(resp != ERROR_NOT){
+	resp = bme_sensor_init();
+	if(resp != 0){
 		printf("Error para inicializar \n\r");
 	}
-	script_mode_force(&device);
-	while (1)
-	{
-		__WFI();
-	}
+	while (resp == 0)
+		resp = bme_sensor_get(BME_MODE_FORCED,&sensor_data);
 
 	atenderError();
 }
-void user_delay_ms(uint32_t ms, void *intf_ptr)
-{
-    delay( ms );
-}
-static int8_t bme280RegisterWrite(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt)
-{
-	struct identifier id;
-    id = *((struct identifier *)ptrInt);
-    uint8_t *buff = malloc((1 + len) * sizeof(uint8_t));
-    buff[0] = reg_addr;
-    for (uint8_t i = 0; i < len; i++)
-    {
-        buff[i + 1] = reg_data[i];
-    }
-	i2cWrite( I2C0,id.devi_addr,buff,len+1,TRUE);
-	free(buff);
-	return 0;
-}
 
-static int8_t bme280RegistersRead(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *ptrInt)
-{
-	struct identifier id;
-    id = *((struct identifier *)ptrInt);
-	if( i2cRead( I2C0,id.devi_addr,&reg_addr,1,TRUE,reg_data,len,TRUE) ){
-		return 0;
-	} else {
-		return -1;
-	}
-}
-// Inicia soporte de la placa y periodo de la interrupcion del SYSTICK
-// cada 1 milisegundo.
-static void Inicio (void)
+static void HW_init(void)
 {
 	SystemCoreClockUpdate();
 	Board_Init();
 	boardInit();
 	/* Enable and setup SysTick Timer at a periodic rate */
 	SysTick_Config(SystemCoreClock / TICKRATE_HZ);
+	/* Enable and setup I2C */
+	i2cInit( I2C0, 100000 );
 
 }
-
 
 // No se implementa la atención del error, se deja colgado con el while(1)
 void atenderError()
 {
-	while(1);
+	while(1)
+	{
+		__WFI();
+	}
 }
 
 
